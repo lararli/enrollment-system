@@ -1,0 +1,22 @@
+{
+    "courses": [
+        {
+            "course_id": 5,
+            "course_name": "Python Course",
+            "related_topics": [
+                "Programming",
+                "Programming for Beginners",
+                "Python"
+            ],
+            "created_by": [
+                "Lara Inacio"
+            ],
+            "workload": 3,
+            "contents": [
+                "Fundamentals",
+                "Data Structures",
+                "Functions"
+            ]
+        }
+    ]
+}

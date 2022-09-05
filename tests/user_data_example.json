@@ -1,0 +1,10 @@
+{
+    "users": [
+        {
+            "user_id": 0,
+            "login": "lara.lopez",
+            "password": 12345,
+            "enrolled_courses": []
+        }
+    ]
+}

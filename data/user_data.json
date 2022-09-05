@@ -1,0 +1,14 @@
+{
+    "users": [
+        {
+            "user_id": 0,
+            "login": "lararli",
+            "password": "12345",
+            "enrolled_courses": [
+                3,
+                4,
+                1
+            ]
+        }
+    ]
+}
