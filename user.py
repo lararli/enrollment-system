@@ -18,21 +18,6 @@ class User:
         self.password = None
         self.user_id = None
 
-    # @property
-    # def login(self):
-    #     return self._login
-    #
-    # @login.setter
-    # def login(self, login):
-    #     """
-    #     Validate if the login provided by the user has digits, spaces or is empty.
-    #     Raises an exception if does.
-    #     :param login: parameter provided by the getter.
-    #     """
-    #     if any(ch.isdigit() for ch in login) or len(login.strip()) == 0 or ' ' in login:
-    #         raise Exception('The login can not contain spaces or digits!')
-    #     self._login = login.lower()
-
     def validate_credentials(self) -> bool:
         """
         Validate if the user credentials assigned in the initialization exist in the user_data file.
@@ -132,3 +117,4 @@ class User:
         if choice not in ['y', 'n']:
             raise ValueError('Please, choose between Y or N.')
         return choice.lower()
+
