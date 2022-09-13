@@ -108,3 +108,10 @@ class User:
                 return session_init
 
         return login_validation()
+
+    @staticmethod
+    def user_choice():
+        choice = input('> ').lower()
+        if choice not in ['y', 'n']:
+            raise ValueError('Please, choose between Y or N.')
+        return choice.lower()

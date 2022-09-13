@@ -116,3 +116,11 @@ class Session:
                 print(course_list.get(key))
         print('\nDo you want to enroll to this course? [Y/N]')
         return course_list
+
+    def validate_if_course_exist(self, course_id: int) -> bool:
+        ids = []
+        for course in self.list_all_courses():
+            ids.append(course[0])
+        if course_id in ids:
+            return True
+        raise ValueError('Please, choose a valid course id.')
