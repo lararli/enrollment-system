@@ -12,26 +12,26 @@ class User:
     and a user id that will be assigned after validation.
     """
 
-    def __init__(self, login: str, password: str, user_data: str):
-        self.login = login
-        self.password = password
+    def __init__(self, user_data: str):
         self.user_data = user_data
+        self.login = None
+        self.password = None
         self.user_id = None
 
-    @property
-    def login(self):
-        return self._login
-
-    @login.setter
-    def login(self, login):
-        """
-        Validate if the login provided by the user has digits, spaces or is empty.
-        Raises an exception if does.
-        :param login: parameter provided by the getter.
-        """
-        if any(ch.isdigit() for ch in login) or len(login.strip()) == 0 or ' ' in login:
-            raise Exception('The login can not contain spaces or digits!')
-        self._login = login.lower()
+    # @property
+    # def login(self):
+    #     return self._login
+    #
+    # @login.setter
+    # def login(self, login):
+    #     """
+    #     Validate if the login provided by the user has digits, spaces or is empty.
+    #     Raises an exception if does.
+    #     :param login: parameter provided by the getter.
+    #     """
+    #     if any(ch.isdigit() for ch in login) or len(login.strip()) == 0 or ' ' in login:
+    #         raise Exception('The login can not contain spaces or digits!')
+    #     self._login = login.lower()
 
     def validate_credentials(self) -> bool:
         """
@@ -41,12 +41,12 @@ class User:
         False if the credentials doesn't exist in the file.
         """
         users_list = load(self.user_data)
-        for item in users_list.get("users"):
-            if self.login == item['login'] and self.password == item['password']:
-                self.user_id = item['user_id']
+        for item in users_list.get('users'):
+            if self.login == item.get('login') and self.password == item.get('password'):
+                self.user_id = item.get('user_id')
                 print("Welcome again!")
                 return True
-            if self.login == item['login'] and self.password != item['password']:
+            if self.login == item.get('login') and self.password != item.get('password'):
                 raise Exception('The password you specified are not correct! Please, try again.')
         return False
 
@@ -64,7 +64,7 @@ class User:
         }
         with open(self.user_data, "r+") as file:
             file_data = json.load(file)
-            file_data['users'].append(new_user)
+            file_data.get('users').append(new_user)
             file.seek(0)
             json.dump(file_data, file, indent=4)
         print('A new user has been created! Welcome! =)')
@@ -76,11 +76,42 @@ class User:
         index = 0
         list_index = []
         file_data = load(self.user_data)
-        for user in file_data['users']:
-            if user['user_id'] == self.user_id:
+        for user in file_data.get('users'):
+            if user.get('user_id') == self.user_id:
                 list_index.append(index)
             index += 1
         for i in list_index:
-            del file_data['users'][i]
+            del file_data.get('users')[i]
         with open(self.user_data, 'w') as file:
             json.dump(file_data, file, indent=4)
+
+    def credentials(self, session_init=True):
+        def login_validation(attempts: int = 4):
+            self.login = str(input('Login:\n> '))
+            self.password = str(input('Password:\n> '))
+
+            if any(ch.isdigit() for ch in self.login) or len(self.login.strip()) == 0 or ' ' in self.login:
+                raise Exception('The login can not contain spaces or digits!')
+            self.login = self.login.lower()
+
+            try:
+                # user = User(user_data=self.user_data)
+                if not self.validate_credentials():
+                    self.create_user()
+            except Exception as e:
+                print(e)
+                assert attempts < 0 or int(attempts) == attempts, 'Please, choose a integer positive number.'
+                if attempts == 0:
+                    raise Exception('You exceeded the number of attempts. Reinitialize the session.')
+                return login_validation(attempts - 1)
+            else:
+                return session_init
+
+        return login_validation()
+
+    @staticmethod
+    def user_choice():
+        choice = input('> ').lower()
+        if choice not in ['y', 'n']:
+            raise ValueError('Please, choose between Y or N.')
+        return choice.lower()

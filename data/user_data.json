@@ -5,9 +5,9 @@
             "login": "lararli",
             "password": "12345",
             "enrolled_courses": [
-                3,
+                1,
                 4,
-                1
+                3
             ]
         }
     ]
