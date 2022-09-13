@@ -90,14 +90,11 @@ class Session:
     def show_all_courses(self) -> list:
         """
         Show all main information about courses stored in course_data file in a way that is readable for the user.
-        :return: courses ids of all courses in the course_data file.
         """
         ids = []
         print('---------- COURSE LIST ----------\n')
         for course in self.list_all_courses():
             print(f'[{course[0]}] | {course[1]} | Workload: {course[2]} ')
-            ids.append(course[0])
-        return ids
 
     def show_course_details(self, course_id) -> dict:
         """
@@ -114,10 +111,13 @@ class Session:
                     print(f'- {value}')
             else:
                 print(course_list.get(key))
-        print('\nDo you want to enroll to this course? [Y/N]')
         return course_list
 
     def validate_if_course_exist(self, course_id: int) -> bool:
+        """
+        Validate if a course exist in course_data given a course_id
+        If the course doesn't exist it'll raise a ValueError.
+        """
         ids = []
         for course in self.list_all_courses():
             ids.append(course[0])
