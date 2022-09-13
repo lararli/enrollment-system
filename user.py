@@ -85,8 +85,18 @@ class User:
         with open(self.user_data, 'w') as file:
             json.dump(file_data, file, indent=4)
 
-    def credentials(self, session_init=True):
+    def credentials(self):
         def login_validation(attempts: int = 4):
+            """
+            Asks the user the login and password, validate if the login doesn't contain
+            digits or spaces or is not empty, and raises an exception if contains.
+            If the login pass in the validation, it'll validate the credentials using the validate_credentials
+            method and will create a user if the validation returns False.
+            This method use a recursive function to give, as standard, 5 attempts to the user put the
+            correct password or a login that fit the initial requirements.
+            If the user don't do it in the attempts, the program is going to raise an Exception and the user will
+            need to reinitialize the session.
+            """
             self.login = str(input('Login:\n> '))
             self.password = str(input('Password:\n> '))
 
@@ -105,12 +115,19 @@ class User:
                     raise Exception('You exceeded the number of attempts. Reinitialize the session.')
                 return login_validation(attempts - 1)
             else:
-                return session_init
+                return True
 
         return login_validation()
 
     @staticmethod
     def user_choice():
+        """
+        Asks the user if they want to enroll to a course.
+        And if the user input a value that is not Y or N, it'll
+        raise an exception, otherwise it'll return the input of the user itself.
+        :return: the input itself.
+        """
+        print('\nDo you want to enroll to this course? [Y/N]')
         choice = input('> ').lower()
         if choice not in ['y', 'n']:
             raise ValueError('Please, choose between Y or N.')
