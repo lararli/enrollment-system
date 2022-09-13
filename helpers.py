@@ -20,5 +20,3 @@ def load(file_path):
         resp = json.load(f)
     return resp
 
-def clear_screen():
-    return os.system('cls' if os.name == 'nt' else 'clear')
