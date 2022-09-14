@@ -19,7 +19,7 @@ def main(courses: str, users: str, init: bool = True):
                 session.show_course_details(course_id)
                 resp = u.user_choice()
                 if resp == 'y':
-                    session.associate_user_to_course(getattr(u, 'user_id'), course_id)
+                    session.associate_user_to_course(u.user_id, course_id)
             except Exception as e:
                 print(e)
             finally:

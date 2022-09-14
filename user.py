@@ -90,7 +90,6 @@ class User:
             self.login = self.login.lower()
 
             try:
-                # user = User(user_data=self.user_data)
                 if not self.validate_credentials():
                     self.create_user()
             except Exception as e:

@@ -77,17 +77,17 @@ class Session:
         :return: True or False
         """
         print('What do you want to do now?')
-        print('[0] Course List\n[1] Exit\n')
+        print('[1] Course List\n[0] Exit\n')
         choice = int(input('> '))
-        if choice == 1:
+        if choice == 0:
             print('See you soon! =)')
             return False
-        if choice == 0:
+        if choice == 1:
             return True
         else:
             raise Exception('Please, choose a valid option.')
 
-    def show_all_courses(self) -> list:
+    def show_all_courses(self):
         """
         Show all main information about courses stored in course_data file in a way that is readable for the user.
         """
@@ -113,7 +113,7 @@ class Session:
                 print(course_list.get(key))
         return course_list
 
-    def validate_if_course_exist(self, course_id: int) -> bool:
+    def validate_if_course_exist(self, course_id: int):
         """
         Validate if a course exist in course_data given a course_id
         If the course doesn't exist it'll raise a ValueError.
@@ -121,6 +121,5 @@ class Session:
         ids = []
         for course in self.list_all_courses():
             ids.append(course[0])
-        if course_id in ids:
-            return True
-        raise ValueError('Please, choose a valid course id.')
+        if course_id not in ids:
+            raise ValueError('Please, choose a valid course id.')
