@@ -6,17 +6,22 @@ course data and user data.
 import json
 from helpers import load
 import os
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
 
 
-class Session:
+class Session(BaseModel):
     """
     This class implements a session, where all the objects will have as
     attributes the path containing both information about courses and users.
     """
 
-    def __init__(self, course_data: str, user_data: str):
-        self.course_data = course_data
-        self.user_data = user_data
+    id: Optional[str]
+    course_data: str
+    user_data: str
+    start_date: datetime = datetime.now().strftime('%m/%d/%Y %I:%M %p')
+    end_date: Optional[datetime] = None
 
     def list_all_courses(self) -> list:
         """
@@ -69,8 +74,8 @@ class Session:
         """
         return os.system('cls' if os.name == 'nt' else 'clear')
 
-    @staticmethod
-    def menu() -> bool:
+    # @staticmethod
+    def menu(self) -> bool:
         """
         Returns a menu where the user can choose go back to the course list or exit the program.
         When the user choose go back, it returns True and when the users choose exit, it returns False.
@@ -81,6 +86,8 @@ class Session:
         choice = int(input('> '))
         if choice == 0:
             print('See you soon! =)')
+            self.end_date = datetime.now().strftime('%m/%d/%Y %I:%M %p')
+            print(self.__dict__)
             return False
         if choice == 1:
             return True

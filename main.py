@@ -1,5 +1,6 @@
 from user import User
 from session import Session
+from fastapi import FastAPI, Query
 
 
 def main(courses: str, users: str, init: bool = True):

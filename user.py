@@ -4,19 +4,21 @@ new users and the validation of existent users.
 """
 import json
 from helpers import load, create_id
+from pydantic import BaseModel
+from typing import Optional, List, Dict
+from datetime import datetime
 
 
-class User:
+class User(BaseModel):
     """
     This class implements the user object, where all the objects will have a login, password
     and a user id that will be assigned after validation.
     """
-
-    def __init__(self, user_data: str):
-        self.user_data = user_data
-        self.login = None
-        self.password = None
-        self.user_id = None
+    user_data: str
+    login: Optional[str]
+    password: Optional[str]
+    user_id: Optional[str]
+    created_date: Optional[datetime]
 
     def validate_credentials(self) -> bool:
         """
@@ -41,11 +43,13 @@ class User:
         assign a unique user_id and store it in the user_data file.
         """
         self.user_id = create_id(self.user_data, 'users', 'user_id')
+        self.created_date = datetime.now().strftime('%m/%d/%Y %I:%M %p')
         new_user = {
             'user_id': self.user_id,
             'login': self.login,
             'password': self.password,
-            'enrolled_courses': []
+            'enrolled_courses': [],
+            'created_date': self.created_date
         }
         with open(self.user_data, "r+") as file:
             file_data = json.load(file)
