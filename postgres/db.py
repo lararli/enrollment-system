@@ -1,9 +1,7 @@
 from contextlib import AsyncExitStack
 import asyncpg
+from datetime import datetime
 
-from dotenv import load_dotenv
-import os
-load_dotenv()
 
 class Connection:
 
@@ -27,70 +25,87 @@ class Connection:
         await self.conn.close()
 
 
-class Client:
+class DB:
 
     def __init__(self, conn: Connection = None):
         self.conn = conn
 
-    async def add_user(self, user_data):
+    async def add_user(self, account_data: dict):
         async with self.conn as conn:
-            res = await conn.execute('''
-            INSERT INTO users(user_id, email, password, created_date)
-            VALUES($1, $2, $3, $4)
+            await conn.execute('''
+            INSERT INTO account(first_name, last_name, email, hashed_password, account_role)
+            VALUES($1, $2, $3, $4, $5)
             ''',
-                                     user_data.get('user_id'),
-                                     user_data.get('email'),
-                                     user_data.get('password'),
-                                     user_data.get('created_date'))
-        return res
+                               account_data.get('first_name'),
+                               account_data.get('last_name'),
+                               account_data.get('email'),
+                               account_data.get('password'),
+                               account_data.get('account_role'))
 
-    async def add_course(self, course_data):
+    async def deactivate_user(self, user_id: int):
         async with self.conn as conn:
-            res = await conn.execute('''
-            INSERT INTO 
-                courses(course_id, course_name, active, created_date, workload, related_topics, created_by)
-            VALUES
-                ($1, $2, $3, $4, $5, $6, $7)
+            await conn.execute('''
+            UPDATE account
+                SET active = False
+                WHERE account_id = $1
             ''',
-                                     course_data.get('course_id'),
-                                     course_data.get('course_name'),
-                                     course_data.get('active'),
-                                     course_data.get('created_date'),
-                                     course_data.get('workload'),
-                                     course_data.get('related_topics'),
-                                     course_data.get('created_by'))
-            return res
+                               user_id)
 
-    async def add_session(self, session_data):
+    async def add_course(self, course_data: dict):
         async with self.conn as conn:
-            res = await conn.execute('''
+            await conn.execute('''
             INSERT INTO 
-                courses(course_id, course_name, active, created_date, workload, related_topics, created_by)
+                course(name, workload, created_by, related_topics)
             VALUES
                 ($1, $2, $3, $4)
             ''',
-                                     session_data.get('session_id'),
-                                     session_data.get('user_id'),
-                                     session_data.get('start_date'),
-                                     session_data.get('end_date'))
-            return res
+                               course_data.get('name'),
+                               course_data.get('workload'),
+                               course_data.get('created_by'),
+                               course_data.get('related_topics'))
 
-    async def add_enrollments(self, enrollment_data):
+    async def deactivate_course(self, course_id: int):
+        async with self.conn as conn:
+            await conn.execute('''
+            UPDATE course
+                SET active = false
+                WHERE course_id = $1
+            ''',
+                               course_id)
+
+    async def add_session(self, session_data: dict):
+        async with self.conn as conn:
+            await conn.execute('''
+            INSERT INTO 
+                session(start_date, end_date, account_id)
+            VALUES
+                ($1, $2, $3)
+            ''',
+                               session_data.get('start_date'),
+                               session_data.get('account_id'))
+
+    async def add_enrollments(self, enrollment_data: dict):
         async with self.conn as conn:
             res = await conn.execute('''
             INSERT INTO 
-                courses(course_id, course_name, active, created_date, workload, related_topics, created_by)
+                enrollment(account_id, course_id, session_id, enrollment_date)
             VALUES
                 ($1, $2, $3, $4)
             ''',
-                                     enrollment_data.get('user_id'),
+                                     enrollment_data.get('account_id'),
                                      enrollment_data.get('course_id'),
-                                     enrollment_data.get('session_id'),
-                                     enrollment_data.get('enrollment_id'))
+                                     enrollment_data.get('session_id'))
             return res
 
-    async def search(self, table, column, id):
+    async def search(self, table: str, column: str, value: str):
         async with self.conn as conn:
-            res = await conn.fetchrow(f'SELECT * FROM {table} where {column} = {id}')
-            print(dict(res))
-            return res
+            res = await conn.fetch(f"SELECT * FROM {table} where {column} = '{value}'")
+
+            if res:
+                data = [dict(result) for result in res]
+                if table == 'account':
+                    # it returns just one user
+                    return data[0]
+                return data
+            return None
+
