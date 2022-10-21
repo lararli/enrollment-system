@@ -162,10 +162,11 @@ class DB:
                         ''',
                                value)
 
-    async def delete(self, value: str):
+    async def delete_user(self, value: str):
         async with self.conn as conn:
             await conn.execute('''
                         DELETE FROM account
                         WHERE account_id = $1
                         ''',
                                value)
+

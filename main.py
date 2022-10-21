@@ -7,8 +7,7 @@ from fastapi_login import LoginManager
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from fastapi.responses import RedirectResponse
-from typing import List
-import time
+
 
 app = FastAPI()
 
@@ -75,7 +74,7 @@ async def root():
 @app.post('/login')
 async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
     user = await authenticate_user(email=form_data.username, password=form_data.password, db=db)
-    if not user:
+    if user is None:
         return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized user')
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRES)
     access_token = manager.create_access_token(
@@ -143,7 +142,7 @@ async def register_course(
             related_topics=related_topics
         )
         await db.add_course(c.dict())
-        return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
+        return {'Course successfully created!'}
     else:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail='You do not have access to create new courses.')
 
@@ -156,7 +155,7 @@ async def deactivate_course(
 ):
     if 'admin' in user.get('account_role'):
         await db.deactivate_course(course_id)
-        return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
+        return {'Course successfully deleted!'}
     return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
 
 
@@ -165,7 +164,7 @@ async def get_courses(db=Depends(get_db), user=Depends(manager)):
     return await db.search(table='course', column='active', value=True)
 
 
-@app.post('/courses/{course_id}', status_code=status.HTTP_201_CREATED)
+@app.post('/courses/{course_id}/enroll', status_code=status.HTTP_201_CREATED)
 async def enroll(db=Depends(get_db), user=Depends(manager), course_id: int = None):
     list_enrolled_courses = await db.search(table='enrollment', column='account_id', value=user.get('account_id'))
 
@@ -177,7 +176,7 @@ async def enroll(db=Depends(get_db), user=Depends(manager), course_id: int = Non
                     detail='You are already enrolled to this course'
                 )
     await db.enroll_user(account_id=user.get('account_id'), course_id=course_id)
-    return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
+    return {'Congratulations! You give the first step for a bright future!'}
 
 
 @app.get('/user/{account_id}/enrolled_courses', status_code=status.HTTP_200_OK)
@@ -186,6 +185,7 @@ async def enrollments(db=Depends(get_db), user=Depends(manager)):
 
     if enrolled_courses is None:
         return {'You are not enrolled to any course yet.'}
+
     ids = []
     for enrolled_course in enrolled_courses:
         ids.append(enrolled_course.get('course_id'))
@@ -201,6 +201,6 @@ async def enrollments(db=Depends(get_db), user=Depends(manager)):
 @app.delete('/user/{user_id}/permanently-delete')
 async def permanently_delete_user(db=Depends(get_db), user=Depends(manager)):
     await db.delete_enrollment(value=user.get('account_id'))
-    await db.delete(value=user.get('account_id'))
+    await db.delete_user(value=user.get('account_id'))
     return RedirectResponse('/logout')
 
