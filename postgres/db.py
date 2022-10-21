@@ -170,3 +170,7 @@ class DB:
                         ''',
                                value)
 
+    async def list_all_objects(self, table):
+        async with self.conn as conn:
+            resp = await conn.fetch(f'SELECT * FROM {table}')
+            return resp

@@ -204,3 +204,19 @@ async def permanently_delete_user(db=Depends(get_db), user=Depends(manager)):
     await db.delete_user(value=user.get('account_id'))
     return RedirectResponse('/logout')
 
+
+@app.get('/list-users')
+async def get_all_users(db=Depends(get_db), user=Depends(manager)):
+    if 'admin' in user.get('account_role'):
+        resp = await db.list_all_objects(table='account')
+        return resp
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
+
+
+@app.get('/list-courses')
+async def get_all_courses(db=Depends(get_db), user=Depends(manager)):
+    if 'admin' in user.get('account_role'):
+        resp = await db.list_all_objects(table='course')
+        return resp
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
+
