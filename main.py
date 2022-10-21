@@ -1,12 +1,14 @@
 from datetime import timedelta
-from fastapi import FastAPI, Depends, status, Form, Response, HTTPException
-from models import User, Course
+from fastapi import FastAPI, Depends, status, Form, Response, HTTPException, Query
+from models import User, Course, Role
 from credentials import credentials
 from postgres.db import Connection, DB
 from fastapi_login import LoginManager
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from fastapi.responses import RedirectResponse
+from typing import List
+import time
 
 app = FastAPI()
 
@@ -29,7 +31,7 @@ def get_db():
 
 
 def get_hashed_password(plain_password):
-    return pwd_ctx.hash(plain_password)
+    return str(pwd_ctx.hash(plain_password))
 
 
 def verify_password(plain_password, hashed_password) -> bool:
@@ -70,7 +72,7 @@ async def root():
     return {'Welcome to Hypathia!'}
 
 
-@app.post('/login', status_code=status.HTTP_302_FOUND)
+@app.post('/login')
 async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
     user = await authenticate_user(email=form_data.username, password=form_data.password, db=db)
     if not user:
@@ -99,35 +101,28 @@ async def register_user(
         last_name: str = Form(),
         email: str = Form(),
         password: str = Form(),
-        account_role: list = Form()
+        account_role: Role = Form()
 ):
     u = User(
         first_name=first_name,
-        last_name=last_name, email=email,
+        last_name=last_name,
+        email=email,
         password=get_hashed_password(password),
         account_role=account_role
     )
+
     await db.add_user(u.dict())
-    await db.search(table='account', column='email', value=email)
-    return RedirectResponse('/login')
+    return RedirectResponse('/', status_code=status.HTTP_302_FOUND)
 
 
-@app.post('/user/{account_id}/deactivate', status_code=status.HTTP_200_OK)
+@app.put('/user/{account_id}/deactivate', status_code=status.HTTP_200_OK)
 async def deactivate_user(
         db=Depends(get_db),
         user=Depends(manager)
 ):
     account_id = user.get('account_id')
-    return await db.deactivate_user(account_id)
-
-
-@app.post('/course/{course_id}/deactivate', status_code=status.HTTP_200_OK)
-async def deactivate_course(
-        user=Depends(manager),
-        db=Depends(get_db),
-        course_id: int = None
-):
-    return await db.deactivate_course(course_id)
+    await db.deactivate_user(account_id)
+    return RedirectResponse('/', status_code=status.HTTP_200_OK)
 
 
 @app.post('/register_course', status_code=status.HTTP_201_CREATED)
@@ -139,6 +134,7 @@ async def register_course(
         created_by: list = Form(),
         related_topics: list = Form()
 ):
+    # check if the course already exist
     if 'admin' in user.get('account_role'):
         c = Course(
             name=name,
@@ -147,9 +143,21 @@ async def register_course(
             related_topics=related_topics
         )
         await db.add_course(c.dict())
-        return await db.search(table='course', column='name', value=name)
+        return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
     else:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail='You do not have access to create new courses.')
+
+
+@app.put('/course/{course_id}/deactivate')
+async def deactivate_course(
+        user=Depends(manager),
+        db=Depends(get_db),
+        course_id: int = None
+):
+    if 'admin' in user.get('account_role'):
+        await db.deactivate_course(course_id)
+        return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
 
 
 @app.get('/courses', status_code=status.HTTP_200_OK)
@@ -159,12 +167,40 @@ async def get_courses(db=Depends(get_db), user=Depends(manager)):
 
 @app.post('/courses/{course_id}', status_code=status.HTTP_201_CREATED)
 async def enroll(db=Depends(get_db), user=Depends(manager), course_id: int = None):
-    enrolled_courses = await db.search(table='enrollment', column='account_id', value=user.get('account_id'))
-    for course in enrolled_courses:
-        if course.get('course_id') == course_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='You are already enrolled to this course'
-            )
+    list_enrolled_courses = await db.search(table='enrollment', column='account_id', value=user.get('account_id'))
 
-    return await db.enroll_user(account_id=user.get('account_id'), course_id=course_id)
+    if list_enrolled_courses is not None:
+        for course in list_enrolled_courses:
+            if course.get('course_id') == course_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail='You are already enrolled to this course'
+                )
+    await db.enroll_user(account_id=user.get('account_id'), course_id=course_id)
+    return RedirectResponse('/courses', status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get('/user/{account_id}/enrolled_courses', status_code=status.HTTP_200_OK)
+async def enrollments(db=Depends(get_db), user=Depends(manager)):
+    enrolled_courses = await db.search(table='enrollment', column='account_id', value=user.get('account_id'))
+
+    if enrolled_courses is None:
+        return {'You are not enrolled to any course yet.'}
+    ids = []
+    for enrolled_course in enrolled_courses:
+        ids.append(enrolled_course.get('course_id'))
+
+    courses_info = []
+    for value in ids:
+        course = await db.search(table='course', column='course_id', value=value)
+        courses_info.append(course[0])
+
+    return courses_info
+
+
+@app.delete('/user/{user_id}/permanently-delete')
+async def permanently_delete_user(db=Depends(get_db), user=Depends(manager)):
+    await db.delete_enrollment(value=user.get('account_id'))
+    await db.delete(value=user.get('account_id'))
+    return RedirectResponse('/logout')
+

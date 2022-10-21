@@ -122,14 +122,14 @@ class DB:
 
         """
         async with self.conn as conn:
-            res = await conn.execute('''
+            await conn.execute('''
             INSERT INTO 
                 enrollment(account_id, course_id)
             VALUES
                 ($1, $2)
             ''',
-                                     account_id,
-                                     course_id)
+                               account_id,
+                               course_id)
 
     async def search(self, table: str, column: str, value: str):
         """
@@ -153,3 +153,19 @@ class DB:
                 # return a list of dictionaries with all registers.
                 return data
             return None
+
+    async def delete_enrollment(self, value: str):
+        async with self.conn as conn:
+            await conn.execute('''
+                        DELETE FROM enrollment
+                        WHERE account_id = $1
+                        ''',
+                               value)
+
+    async def delete(self, value: str):
+        async with self.conn as conn:
+            await conn.execute('''
+                        DELETE FROM account
+                        WHERE account_id = $1
+                        ''',
+                               value)

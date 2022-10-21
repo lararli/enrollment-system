@@ -1,4 +1,10 @@
 from pydantic import BaseModel
+from enum import Enum
+
+
+class Role(str, Enum):
+    admin: str = 'admin'
+    user: str = 'user'
 
 
 class User(BaseModel):
@@ -10,7 +16,7 @@ class User(BaseModel):
     last_name: str
     email: str
     password: str
-    account_role: list
+    account_role: Role
 
 
 class Course(BaseModel):
