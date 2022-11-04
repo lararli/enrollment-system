@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import FastAPI, Depends, status, Form, Response, HTTPException, Query
+from fastapi import FastAPI, Depends, status, Form, Response, HTTPException
 from models import User, Course, Role
 from credentials import credentials
 from postgres.db import Connection, DB
@@ -7,7 +7,6 @@ from fastapi_login import LoginManager
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from fastapi.responses import RedirectResponse
-
 
 app = FastAPI()
 
@@ -62,13 +61,14 @@ def not_authenticated_exception_handler(request, exception):
     return RedirectResponse('/login')
 
 
+# Encapsulation and Dependency Injection
 manager.not_authenticated_exception = NotAuthenticatedException
 app.add_exception_handler(NotAuthenticatedException, not_authenticated_exception_handler)
 
 
 @app.get('/')
 async def root():
-    return {'Welcome to Hypathia!'}
+    return {'This is a home page!'}
 
 
 @app.post('/login')
@@ -121,7 +121,7 @@ async def deactivate_user(
 ):
     account_id = user.get('account_id')
     await db.deactivate_user(account_id)
-    return RedirectResponse('/', status_code=status.HTTP_200_OK)
+    return RedirectResponse('/logout', status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post('/register_course', status_code=status.HTTP_201_CREATED)
@@ -133,7 +133,9 @@ async def register_course(
         created_by: list = Form(),
         related_topics: list = Form()
 ):
-    # check if the course already exist
+    course_name = db.search(table='course', column='name', value=name)
+    if course_name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='This course already exist.')
     if 'admin' in user.get('account_role'):
         c = Course(
             name=name,
@@ -143,8 +145,7 @@ async def register_course(
         )
         await db.add_course(c.dict())
         return {'Course successfully created!'}
-    else:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail='You do not have access to create new courses.')
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail='You do not have access to create new courses.')
 
 
 @app.put('/course/{course_id}/deactivate')
@@ -156,7 +157,7 @@ async def deactivate_course(
     if 'admin' in user.get('account_role'):
         await db.deactivate_course(course_id)
         return {'Course successfully deleted!'}
-    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='You do not have permission to deactivate courses.')
 
 
 @app.get('/courses', status_code=status.HTTP_200_OK)
@@ -202,7 +203,7 @@ async def enrollments(db=Depends(get_db), user=Depends(manager)):
 async def permanently_delete_user(db=Depends(get_db), user=Depends(manager)):
     await db.delete_enrollment(value=user.get('account_id'))
     await db.delete_user(value=user.get('account_id'))
-    return RedirectResponse('/logout')
+    return RedirectResponse('/logout', status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get('/list-users')
@@ -219,4 +220,3 @@ async def get_all_courses(db=Depends(get_db), user=Depends(manager)):
         resp = await db.list_all_objects(table='course')
         return resp
     return HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Unauthorized operation.')
-
